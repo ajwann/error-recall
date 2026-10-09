@@ -1,0 +1,11 @@
+{
+  "description": "error-recall: fingerprint failures, remember what fixed them",
+  "hooks": {
+    "PostToolUseFailure": [
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook.py"], "timeout": 10}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit", "hooks": [{"type": "command", "command": "python3", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook.py"], "timeout": 10}]}
+    ]
+  }
+}

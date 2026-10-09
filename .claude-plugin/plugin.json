@@ -1,0 +1,18 @@
+{
+  "name": "error-recall",
+  "version": "0.1.0",
+  "description": "Remembers errors Claude has hit in a repo and what fixed them, and recalls the fix when the same error comes back.",
+  "author": {
+    "name": "Adam Wanninger",
+    "email": "adam@awanninger.com"
+  },
+  "homepage": "https://github.com/ajwann/error-recall",
+  "repository": "https://github.com/ajwann/error-recall",
+  "license": "MIT",
+  "keywords": [
+    "errors",
+    "memory",
+    "debugging",
+    "hooks"
+  ]
+}

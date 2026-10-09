@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""error-recall CLI: `error-recall [list|show FP|forget] [--project DIR]`."""
+import argparse
+import os
+import sys
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from error_recall.core import connect, recall  # noqa: E402
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="error-recall")
+    ap.add_argument("action", nargs="?", default="list", choices=["list", "show", "forget"])
+    ap.add_argument("fp", nargs="?")
+    ap.add_argument("--project", default=os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
+    a = ap.parse_args()
+    project = os.path.abspath(a.project)
+    with connect() as con:
+        if a.action == "forget":
+            for t in ("failures", "resolutions", "activity"):
+                con.execute(f"DELETE FROM {t} WHERE project=?", (project,))
+            print(f"forgot everything for {project}")
+            return 0
+        if a.action == "show":
+            if not a.fp:
+                ap.error("show needs a fingerprint")
+            print(recall(con, project, a.fp) or "unknown fingerprint")
+            row = con.execute("SELECT sample, command FROM failures WHERE project=? AND fp=? ORDER BY ts DESC LIMIT 1",
+                              (project, a.fp)).fetchone()
+            if row:
+                print(f"\nlast command: {row[1]}\n{row[0]}")
+            return 0
+        rows = con.execute("""SELECT f.fp, COUNT(*), MAX(f.ts), MAX(f.resolved_by IS NOT NULL),
+                              (SELECT sample FROM failures g WHERE g.fp=f.fp AND g.project=f.project ORDER BY ts DESC LIMIT 1)
+                              FROM failures f WHERE project=? GROUP BY fp ORDER BY MAX(f.ts) DESC LIMIT 30""",
+                           (project,)).fetchall()
+    if not rows:
+        print(f"no failures recorded for {project}")
+        return 0
+    print("| fingerprint | seen | last | fixed | first error line |\n|---|---|---|---|---|")
+    for fp, n, ts, fixed, sample in rows:
+        first = (sample or "").split("\n")[0][:90].replace("|", "\\|")
+        print(f"| {fp} | {n} | {time.strftime('%Y-%m-%d', time.localtime(ts))} | {'yes' if fixed else 'no'} | {first} |")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
